@@ -45,20 +45,25 @@ if ($action === 'delete_from_blacklist' && $request->isPost()) {
                 $blacklistConfigKey = isset($pluginOptions->blacklist) ? 'blacklist' : (isset($pluginOptions->ips) ? 'ips' : null);
                 $currentBlacklist = $blacklistConfigKey ? $pluginOptions->{$blacklistConfigKey} : '';
 
-                $blacklistLines = preg_split('/[\\r\\n]+/', $currentBlacklist, -1, PREG_SPLIT_NO_EMPTY);
+                $blacklistLines = preg_split('/[\\r\\n]+/', $currentBlacklist);
                 $newBlacklistLines = [];
                 $found = false;
                 foreach ($blacklistLines as $line) {
+                    $trimmedLine = trim($line);
+                    if (empty($trimmedLine)) {
+                        continue; // Skip empty or whitespace-only lines
+                    }
+
                     // Check if the line starts with the IP to delete, optionally followed by a space and #
-                    if (preg_match('/^' . preg_quote($ipToDelete, '/') . '(\\s+#.*)?$/', trim($line))) {
+                    if (preg_match('/^' . preg_quote($ipToDelete, '/') . '(\\s+#.*)?$/', $trimmedLine)) {
                         $found = true;
                         continue; // Skip this line
                     }
-                    $newBlacklistLines[] = $line;
+                    $newBlacklistLines[] = $line; // Add the original line back
                 }
 
                 if ($found) {
-                    $updatedBlacklist = implode("\\n", $newBlacklistLines);
+                    $updatedBlacklist = implode("\n", $newBlacklistLines);
 
                     // 重新获取当前完整的插件配置
                     $currentConfigResult = $db->fetchObject($db->select('value')
@@ -121,7 +126,7 @@ if ($action === 'delete_page_logs' && $request->isPost()) {
             ->order('created', Typecho_Db::SORT_DESC)
             ->limit($pageSize)
             ->offset($offset));
-        
+
         if (!empty($currentPageLogs)) {
             $deletedCount = 0;
             foreach ($currentPageLogs as $log) {
@@ -322,8 +327,10 @@ function getReasonDescription($reason)
     );
 
     // 如果原因以特定前缀开头，直接返回完整描述
-    if (strpos($reason, '智能检测：') === 0 || 
-        strpos($reason, '黑名单：') === 0) {
+    if (
+        strpos($reason, '智能检测：') === 0 ||
+        strpos($reason, '黑名单：') === 0
+    ) {
         return $reason;
     }
 
@@ -357,14 +364,14 @@ function getCurrentPageUrl($page = null)
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --color-primary:rgb(18, 123, 203);
+            --color-primary: rgb(18, 123, 203);
             /* 更柔和的蓝色 */
             --color-primary-light: #e8f4fd;
             --color-primary-dark: #4a8bc2;
             --color-success: #28a745;
             /* 绿色成功 */
             --color-success-light: #eaf6ec;
-            --color-danger:rgb(245, 68, 86);
+            --color-danger: rgb(245, 68, 86);
             /* 红色危险 */
             --color-danger-light: #fdecea;
             --color-warning: #ffc107;

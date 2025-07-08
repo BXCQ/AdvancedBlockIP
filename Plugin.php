@@ -1,15 +1,22 @@
 <?php
-
 /**
- * 高级IP访问控制插件
- * 
+ * 高级IP访问控制 (Advanced IP Blocker)
+ *
  * 一款功能强大的Typecho插件，提供基于IP的黑名单、白名单和智能威胁检测功能，保护您的网站免受恶意访问和攻击。
  *
- * @package AdvancedBlockIP
- * @author 璇
- * @version 2.3.0
- * @link https://blog.ybyq.wang
- * @update: 2025.06.23
+ * @package    AdvancedBlockIP
+ * @author     bxcq
+ * @version    2.3.1
+ * @link       https://github.com/BXCQ/AdvancedBlockIP
+ * @update     2025.07.09
+ *
+ * 历史版本
+ * Version 1.0.0 (2014-10-14)
+ * Version 1.0.1 (2014-10-15)
+ * Version 2.0.0 (2025-04-05) - 璇
+ * Version 2.1.0 (2025-05-13) - 璇
+ * Version 2.2.0 (2025-06-06) - 璇
+ * Version 2.3.0 (2025-06-23) - 璇
  */
 
 namespace TypechoPlugin\AdvancedBlockIP;
@@ -28,12 +35,8 @@ use Typecho\Request;
 use Typecho\Widget;
 use Typecho\Common;
 
-if (!defined('__TYPECHO_ROOT_DIR__')) {
-    exit;
-}
-
-// 加载兼容适配器
-require_once __DIR__ . '/adapter.php';
+if (!defined('__TYPECHO_ROOT_DIR__')) exit;
+require_once 'adapter.php';
 
 /**
  * 高级IP访问控制插件类
@@ -51,10 +54,10 @@ class Plugin implements PluginInterface
 
             // 使用全局命名空间的Helper类
             \Helper::addPanel(1, 'AdvancedBlockIP/console.php', 'IP防护控制台', 'IP防护控制台', 'administrator');
-            
+
             // 兼容导航菜单钩子
             TypechoPlugin::factory('admin/menu.php')->navBar = array(__CLASS__, 'navBar');
-            
+
             // 创建插件数据表（包括表结构更新）
             self::createTables();
 
@@ -71,7 +74,7 @@ class Plugin implements PluginInterface
     {
         // 使用全局命名空间的Helper类
         \Helper::removePanel(1, 'AdvancedBlockIP/console.php');
-        
+
         return "高级IP访问控制插件已禁用。";
     }
 
@@ -411,8 +414,8 @@ class Plugin implements PluginInterface
             // 判断是否开启调试模式
             $debugMode = isset($config->debugMode) ? (bool)$config->debugMode : false;
 
-        $db = Db::get();
-        $prefix = $db->getPrefix();
+            $db = Db::get();
+            $prefix = $db->getPrefix();
             $currentTime = time();
 
             // 检查1秒内访问超过2个不同URL的情况
@@ -453,7 +456,7 @@ class Plugin implements PluginInterface
             if ($recentAccessCount10s && $recentAccessCount10s->count >= 6) {
                 if ($debugMode) {
                     error_log("AdvancedBlockIP Debug: 频率异常 - 10秒内访问{$recentAccessCount10s->count}次, IP: {$ip}");
-            }
+                }
                 return true;
             }
 
@@ -463,7 +466,7 @@ class Plugin implements PluginInterface
             return false;
         } catch (\Exception $e) {
             error_log("AdvancedBlockIP Error in checkFrequencyAnomaly: " . $e->getMessage());
-        return false;
+            return false;
         }
     }
 

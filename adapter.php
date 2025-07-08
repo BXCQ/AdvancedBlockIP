@@ -1,4 +1,5 @@
 <?php
+
 /**
  * 适配器文件 - 用于处理Typecho新旧版本的类名兼容性
  */
@@ -96,4 +97,4 @@ if (!defined('Typecho_Db::SORT_ASC')) {
 
 if (!defined('Typecho_Db::SORT_DESC')) {
     define('Typecho_Db::SORT_DESC', 'DESC');
-} 
+}

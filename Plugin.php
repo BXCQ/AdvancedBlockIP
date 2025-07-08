@@ -5,7 +5,7 @@
  * 一款功能强大的Typecho插件，提供基于IP的黑名单、白名单和智能威胁检测功能，保护您的网站免受恶意访问和攻击。
  *
  * @package    AdvancedBlockIP
- * @author     bxcq
+ * @author     璇
  * @version    2.3.1
  * @link       https://github.com/BXCQ/AdvancedBlockIP
  * @update     2025.07.09

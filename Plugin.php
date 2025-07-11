@@ -1,12 +1,13 @@
 <?php
+
 /**
  * 高级IP访问控制 (Advanced IP Blocker)
- *
+ * 
  * 一款功能强大的Typecho插件，提供基于IP的黑名单、白名单和智能威胁检测功能，保护您的网站免受恶意访问和攻击。
  *
  * @package    AdvancedBlockIP
  * @author     璇
- * @version    2.3.1
+ * @version    2.3.2
  * @link       https://github.com/BXCQ/AdvancedBlockIP
  * @update     2025.07.09
  *
@@ -15,8 +16,8 @@
  * Version 1.0.1 (2014-10-15)
  * Version 2.0.0 (2025-04-05) - 璇
  * Version 2.1.0 (2025-05-13) - 璇
- * Version 2.2.0 (2025-06-06) - 璇
- * Version 2.3.0 (2025-06-23) - 璇
+ * Version 2.2.0 (2025-06-06) - 璇 
+ * Version 2.3.0 (2025-06-23) - 璇   
  */
 
 namespace TypechoPlugin\AdvancedBlockIP;
@@ -51,6 +52,12 @@ class Plugin implements PluginInterface
         try {
             // 绑定到页面渲染前的钩子
             TypechoPlugin::factory('Widget_Archive')->beforeRender = array(__CLASS__, 'checkIPAccess');
+            // 添加更多钩子以确保拦截功能在所有页面生效
+            TypechoPlugin::factory('Widget_Archive')->header = array(__CLASS__, 'checkIPAccess');
+            TypechoPlugin::factory('Widget_Archive')->footer = array(__CLASS__, 'checkIPAccess');
+            TypechoPlugin::factory('Widget_Archive')->handle = array(__CLASS__, 'checkIPAccess');
+            TypechoPlugin::factory('index.php')->begin = array(__CLASS__, 'checkIPAccess');
+            TypechoPlugin::factory('admin/common.php')->begin = array(__CLASS__, 'checkIPAccess');
 
             // 使用全局命名空间的Helper类
             \Helper::addPanel(1, 'AdvancedBlockIP/console.php', 'IP防护控制台', 'IP防护控制台', 'administrator');
@@ -96,6 +103,15 @@ class Plugin implements PluginInterface
      */
     public static function config(Form $form)
     {
+        try {
+            // 获取已保存的插件配置
+            $options = Widget::widget('Widget_Options');
+            $config = $options->plugin('AdvancedBlockIP');
+        } catch (\Exception $e) {
+            // 插件首次激活或无配置时，使用空对象
+            $config = new \stdClass();
+        }
+
         // 功能模式选择
         $mode = new Select(
             'mode',
@@ -104,7 +120,7 @@ class Plugin implements PluginInterface
                 'whitelist' => '白名单模式（仅允许指定IP）',
                 'smart' => '智能模式（自动识别威胁）'
             ),
-            'smart',
+            isset($config->mode) ? $config->mode : 'smart',
             '工作模式',
             '选择插件的工作模式，推荐使用智能模式（黑白名单同时生效）'
         );
@@ -117,17 +133,18 @@ class Plugin implements PluginInterface
                 'block' => '完全禁止访问',
                 'limit' => '限制访问频率'
             ),
-            'block',
+            isset($config->blacklistMode) ? $config->blacklistMode : 'block',
             '黑名单处理模式',
             '选择对黑名单IP的处理方式'
         );
         $form->addInput($blacklistMode);
 
         // IP黑名单配置
+        $blacklistValue = isset($config->blacklist) ? $config->blacklist : '';
         $blacklist = new Textarea(
             'blacklist',
             null,
-            '',
+            $blacklistValue,
             'IP黑名单',
             '每行一个IP地址或IP段，支持以下格式：<br/>
             • 单个IP：192.168.1.100<br/>
@@ -140,30 +157,33 @@ class Plugin implements PluginInterface
         $form->addInput($blacklist);
 
         // IP白名单配置
+        $whitelistValue = isset($config->whitelist) ? $config->whitelist : '';
         $whitelist = new Textarea(
             'whitelist',
             null,
-            '',
+            $whitelistValue,
             'IP白名单',
             '管理员和可信任的IP地址列表，格式同黑名单，支持通配符如192.168.*.*'
         );
         $form->addInput($whitelist);
 
         // 访问间隔限制
+        $accessIntervalValue = isset($config->accessInterval) ? $config->accessInterval : '10';
         $accessInterval = new Text(
             'accessInterval',
             null,
-            '10',
+            $accessIntervalValue,
             '访问间隔限制（秒）',
             '单个IP两次访问之间的最小间隔时间，0为不限制'
         );
         $form->addInput($accessInterval);
 
         // 自定义拦截页面
+        $customMessageValue = isset($config->customMessage) ? $config->customMessage : '抱歉，您的访问被系统安全策略拦截。如需帮助，请联系网站管理员。';
         $customMessage = new Textarea(
             'customMessage',
             null,
-            '抱歉，您的访问被系统安全策略拦截。如需帮助，请联系网站管理员。',
+            $customMessageValue,
             '自定义拦截提示',
             '自定义显示给被拦截用户的信息，支持HTML'
         );
@@ -176,7 +196,7 @@ class Plugin implements PluginInterface
                 '0' => '关闭',
                 '1' => '开启'
             ),
-            '0',
+            isset($config->debugMode) ? $config->debugMode : '0',
             '调试模式',
             '开启后会记录详细的运行日志到服务器error_log，仅在排查问题时开启'
         );
@@ -197,10 +217,23 @@ class Plugin implements PluginInterface
     public static function checkIPAccess()
     {
         try {
+            // 使用静态变量防止重复执行
+            static $checked = false;
+            if ($checked) {
+                return;
+            }
+            $checked = true;
+
             $request = new Request();
             $clientIP = self::getRealClientIP($request);
-            $options = Widget::widget('Widget_Options');
-            $config = $options->plugin('AdvancedBlockIP');
+            
+            try {
+                $options = Widget::widget('Widget_Options');
+                $config = $options->plugin('AdvancedBlockIP');
+            } catch (\Exception $e) {
+                // 当插件配置不存在时，提供一个空的默认配置
+                $config = new \stdClass();
+            }
 
             // 获取工作模式，默认为智能模式
             $mode = isset($config->mode) ? $config->mode : 'smart';
@@ -295,7 +328,7 @@ class Plugin implements PluginInterface
                 error_log("AdvancedBlockIP Debug: 默认放行IP: {$clientIP}");
             }
             self::recordLastAccess($clientIP, $request->getRequestUrl());
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log("AdvancedBlockIP Error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
         }
     }

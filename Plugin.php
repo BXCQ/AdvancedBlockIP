@@ -9,7 +9,7 @@
  * @author     璇
  * @version    2.3.2
  * @link       https://github.com/BXCQ/AdvancedBlockIP
- * @update     2025.07.09
+ * @update     2025.07.11
  *
  * 历史版本
  * Version 1.0.0 (2014-10-14)
@@ -17,7 +17,9 @@
  * Version 2.0.0 (2025-04-05) - 璇
  * Version 2.1.0 (2025-05-13) - 璇
  * Version 2.2.0 (2025-06-06) - 璇 
- * Version 2.3.0 (2025-06-23) - 璇   
+ * Version 2.3.0 (2025-06-23) - 璇
+ * Version 2.3.1 (2025-07-10) - 璇
+ * Version 2.3.2 (2025-07-11) - 璇
  */
 
 namespace TypechoPlugin\AdvancedBlockIP;

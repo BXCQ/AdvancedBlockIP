@@ -35,6 +35,18 @@ if ($action === 'clear_logs' && $request->isPost()) {
     }
 }
 
+// 处理修复数据库结构的请求
+if ($action === 'fix_database' && $request->isPost()) {
+    try {
+        // 调用Plugin类的修复方法
+        require_once __DIR__ . '/Plugin.php';
+        $result = \TypechoPlugin\AdvancedBlockIP\Plugin::fixDatabaseSchema();
+        $success_message = $result;
+    } catch (\Exception $e) {
+        $error_message = "修复数据库失败: " . $e->getMessage();
+    }
+}
+
 // 处理从黑名单删除IP的请求
 if ($action === 'delete_from_blacklist' && $request->isPost()) {
     $ipToDelete = $request->get('ip_to_delete', '');
@@ -126,7 +138,7 @@ if ($action === 'delete_page_logs' && $request->isPost()) {
             ->order('created', Typecho_Db::SORT_DESC)
             ->limit($pageSize)
             ->offset($offset));
-
+        
         if (!empty($currentPageLogs)) {
             $deletedCount = 0;
             foreach ($currentPageLogs as $log) {
@@ -267,7 +279,7 @@ function getBlacklistEntries($pluginOptions)
 
         $ip = $line;
         $reason = '手动添加'; // Default reason
-        $date_added = '';
+        $date_added = date('Y-m-d H:i:s'); // 默认使用当前时间
 
         if (strpos($line, '#') !== false) {
             list($ip, $comment) = explode('#', $line, 2);
@@ -1113,6 +1125,16 @@ function getCurrentPageUrl($page = null)
                         <span class="btn-icon">⚙️</span>
                         <span>插件设置</span>
                     </a>
+                    <button onclick="if(confirm('确定要修复数据库表结构吗？\n\n此操作将修复“主键冲突”错误，并优化数据库表结构。\n建议在修复前备份数据库。\n请确认是否继续？')) { 
+                        var form = document.createElement('form');
+                        form.method = 'POST';
+                        form.innerHTML = '<input type=&quot;hidden&quot; name=&quot;action&quot; value=&quot;fix_database&quot;>';
+                        document.body.appendChild(form);
+                        form.submit();
+                    }" class="btn btn-outline-secondary">
+                        <span class="btn-icon">🔧</span>
+                        <span>修复数据库结构</span>
+                    </button>
                 </div>
             </div>
 

@@ -7,8 +7,8 @@
  * 
  * @package AdvancedBlockIP
  * @author 璇
- * @version 2.3.0
- * @update: 2025.06.23
+ * @version 2.3.3
+ * @update: 2025.07.22
  */
 
 // 开始输出缓冲

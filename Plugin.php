@@ -7,9 +7,9 @@
  *
  * @package    AdvancedBlockIP
  * @author     璇
- * @version    2.3.2
+ * @version    2.3.3
  * @link       https://github.com/BXCQ/AdvancedBlockIP
- * @update     2025.07.11
+ * @update     2025.07.22
  *
  * 历史版本
  * Version 1.0.0 (2014-10-14)
@@ -20,6 +20,7 @@
  * Version 2.3.0 (2025-06-23) - 璇
  * Version 2.3.1 (2025-07-10) - 璇
  * Version 2.3.2 (2025-07-11) - 璇
+ * Version 2.3.3 (2025-07-22) - 璇
  */
 
 namespace TypechoPlugin\AdvancedBlockIP;
@@ -744,13 +745,32 @@ class Plugin implements PluginInterface
             $currentTime = time();
             $request = new Request();
 
-            $db->query($db->insert($prefix . 'blockip_access_log')->rows(array(
-                'ip' => $ip,
-                'url' => $url,
-                'user_agent' => substr((string)$request->getAgent(), 0, 255),
-                'last_access' => $currentTime,
-                'timestamp' => $currentTime
-            )));
+            // 检查IP是否已存在
+            $existingRecord = $db->fetchRow($db->select()
+                ->from($prefix . 'blockip_access_log')
+                ->where('ip = ?', $ip));
+            
+            if ($existingRecord) {
+                // 如果记录已存在，则更新
+                $db->query($db->update($prefix . 'blockip_access_log')
+                    ->rows(array(
+                        'url' => $url,
+                        'user_agent' => substr((string)$request->getAgent(), 0, 255),
+                        'last_access' => $currentTime,
+                        'timestamp' => $currentTime
+                    ))
+                    ->where('ip = ?', $ip));
+            } else {
+                // 如果记录不存在，则插入
+                $db->query($db->insert($prefix . 'blockip_access_log')
+                    ->rows(array(
+                        'ip' => $ip,
+                        'url' => $url,
+                        'user_agent' => substr((string)$request->getAgent(), 0, 255),
+                        'last_access' => $currentTime,
+                        'timestamp' => $currentTime
+                    )));
+            }
 
             // 清理30天前的旧记录
             $db->query($db->delete($prefix . 'blockip_access_log')
@@ -1022,6 +1042,7 @@ class Plugin implements PluginInterface
             `last_access` int(11) NOT NULL,
             `timestamp` int(11) NOT NULL,
             PRIMARY KEY (`id`),
+            UNIQUE KEY `ip` (`ip`),
             KEY `ip_timestamp` (`ip`, `timestamp`),
             KEY `timestamp` (`timestamp`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
@@ -1031,6 +1052,87 @@ class Plugin implements PluginInterface
             $db->query($sql2);
         } catch (\Exception $e) {
             error_log("AdvancedBlockIP createTables Error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * 检查并修复数据库表结构
+     * 
+     * @return string 修复结果信息
+     */
+    public static function fixDatabaseSchema()
+    {
+        try {
+            $db = Db::get();
+            $prefix = $db->getPrefix();
+            $results = [];
+            
+            // 1. 备份当前数据
+            $existingRecords = $db->fetchAll($db->select()->from($prefix . 'blockip_access_log'));
+            $results[] = "成功备份了 " . count($existingRecords) . " 条访问记录";
+            
+            // 2. 删除可能存在的原始表
+            try {
+                $db->query("DROP TABLE IF EXISTS `{$prefix}blockip_access_log_bak`");
+                $db->query("RENAME TABLE `{$prefix}blockip_access_log` TO `{$prefix}blockip_access_log_bak`");
+                $results[] = "成功备份原始表到 {$prefix}blockip_access_log_bak";
+            } catch (\Exception $e) {
+                $results[] = "表备份过程中出现错误: " . $e->getMessage();
+                // 如果表不存在，则忽略错误继续执行
+            }
+            
+            // 3. 创建正确结构的表
+            $sql = "CREATE TABLE IF NOT EXISTS `{$prefix}blockip_access_log` (
+                `id` int(11) NOT NULL AUTO_INCREMENT,
+                `ip` varchar(45) NOT NULL,
+                `url` varchar(500) DEFAULT '',
+                `user_agent` text,
+                `last_access` int(11) NOT NULL,
+                `timestamp` int(11) NOT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `ip` (`ip`),
+                KEY `ip_timestamp` (`ip`, `timestamp`),
+                KEY `timestamp` (`timestamp`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+            
+            $db->query($sql);
+            $results[] = "成功创建新表结构";
+            
+            // 4. 恢复数据（去重）
+            if (!empty($existingRecords)) {
+                $insertedIPs = [];
+                
+                foreach ($existingRecords as $record) {
+                    if (!in_array($record['ip'], $insertedIPs)) {
+                        try {
+                            $db->query($db->insert($prefix . 'blockip_access_log')->rows([
+                                'ip' => $record['ip'],
+                                'url' => $record['url'],
+                                'user_agent' => $record['user_agent'],
+                                'last_access' => $record['last_access'],
+                                'timestamp' => $record['timestamp']
+                            ]));
+                            $insertedIPs[] = $record['ip'];
+                        } catch (\Exception $e) {
+                            // 忽略插入错误
+                        }
+                    }
+                }
+                
+                $results[] = "成功恢复了 " . count($insertedIPs) . " 条唯一IP记录";
+            }
+            
+            // 5. 删除备份表
+            try {
+                $db->query("DROP TABLE IF EXISTS `{$prefix}blockip_access_log_bak`");
+                $results[] = "自动删除备份表成功";
+            } catch (\Exception $e) {
+                $results[] = "删除备份表失败: " . $e->getMessage();
+            }
+            
+            return implode("<br>", $results) . "<br><strong>数据库结构修复完成！</strong>";
+        } catch (\Exception $e) {
+            return "修复过程出现错误: " . $e->getMessage();
         }
     }
 }

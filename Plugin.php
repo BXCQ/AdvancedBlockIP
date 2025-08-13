@@ -171,7 +171,6 @@ class Plugin implements PluginInterface
         );
         $form->addInput($whitelist);
 
-<<<<<<< HEAD
         // User-Agent白名单配置
         $uaWhitelistValue = isset($config->uaWhitelist) ? $config->uaWhitelist : '';
         $uaWhitelist = new Textarea(
@@ -180,15 +179,13 @@ class Plugin implements PluginInterface
             $uaWhitelistValue,
             'User-Agent白名单',
             '可信任的User-Agent列表，每行一个，支持完整匹配和部分匹配。在此列表中的User-Agent将不会被智能检测拦截。<br/>'
-            . '支持格式：<br/>'
-            . '• 完整User-Agent：Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36<br/>'
-            . '• 部分匹配：Chrome、Firefox、Safari、Edge<br/>'
-            . '• 自定义应用：MyApp/1.0、TrustedBot'
+                . '支持格式：<br/>'
+                . '• 完整User-Agent：Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36<br/>'
+                . '• 部分匹配：Chrome、Firefox、Safari、Edge<br/>'
+                . '• 自定义应用：MyApp/1.0、TrustedBot'
         );
         $form->addInput($uaWhitelist);
 
-=======
->>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
         // 访问间隔限制
         $accessIntervalValue = isset($config->accessInterval) ? $config->accessInterval : '10';
         $accessInterval = new Text(
@@ -248,7 +245,7 @@ class Plugin implements PluginInterface
 
             $request = new Request();
             $clientIP = self::getRealClientIP($request);
-            
+
             try {
                 $options = Widget::widget('Widget_Options');
                 $config = $options->plugin('AdvancedBlockIP');
@@ -439,11 +436,7 @@ class Plugin implements PluginInterface
         }
 
         // UA异常检测
-<<<<<<< HEAD
         $uaAnomaly = self::checkUserAgentAnomaly($config);
-=======
-        $uaAnomaly = self::checkUserAgentAnomaly();
->>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
         if ($uaAnomaly) {
             $reasons[] = 'UA异常';
             if ($debugMode) {
@@ -532,11 +525,7 @@ class Plugin implements PluginInterface
     /**
      * 检查User-Agent是否异常
      */
-<<<<<<< HEAD
     private static function checkUserAgentAnomaly($config = null)
-=======
-    private static function checkUserAgentAnomaly()
->>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
     {
         $request = new Request();
         $userAgent = $request->getAgent();
@@ -545,7 +534,6 @@ class Plugin implements PluginInterface
             return 'UA为空';
         }
 
-<<<<<<< HEAD
         // 检查User-Agent白名单
         if ($config && isset($config->uaWhitelist) && !empty($config->uaWhitelist)) {
             if (self::isUserAgentWhitelisted($userAgent, $config->uaWhitelist)) {
@@ -553,8 +541,6 @@ class Plugin implements PluginInterface
             }
         }
 
-=======
->>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
         // 常见的恶意或扫描工具的User-Agent片段
         $maliciousUAs = [
             'sqlmap',
@@ -602,7 +588,6 @@ class Plugin implements PluginInterface
     }
 
     /**
-<<<<<<< HEAD
      * 检查User-Agent是否在白名单中
      */
     private static function isUserAgentWhitelisted($userAgent, $whitelist)
@@ -633,8 +618,6 @@ class Plugin implements PluginInterface
     }
 
     /**
-=======
->>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
      * 检查Referer是否异常
      */
     private static function checkRefererAnomaly()
@@ -819,7 +802,7 @@ class Plugin implements PluginInterface
             $existingRecord = $db->fetchRow($db->select()
                 ->from($prefix . 'blockip_access_log')
                 ->where('ip = ?', $ip));
-            
+
             if ($existingRecord) {
                 // 如果记录已存在，则更新
                 $db->query($db->update($prefix . 'blockip_access_log')
@@ -1136,11 +1119,11 @@ class Plugin implements PluginInterface
             $db = Db::get();
             $prefix = $db->getPrefix();
             $results = [];
-            
+
             // 1. 备份当前数据
             $existingRecords = $db->fetchAll($db->select()->from($prefix . 'blockip_access_log'));
             $results[] = "成功备份了 " . count($existingRecords) . " 条访问记录";
-            
+
             // 2. 删除可能存在的原始表
             try {
                 $db->query("DROP TABLE IF EXISTS `{$prefix}blockip_access_log_bak`");
@@ -1150,7 +1133,7 @@ class Plugin implements PluginInterface
                 $results[] = "表备份过程中出现错误: " . $e->getMessage();
                 // 如果表不存在，则忽略错误继续执行
             }
-            
+
             // 3. 创建正确结构的表
             $sql = "CREATE TABLE IF NOT EXISTS `{$prefix}blockip_access_log` (
                 `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -1164,14 +1147,14 @@ class Plugin implements PluginInterface
                 KEY `ip_timestamp` (`ip`, `timestamp`),
                 KEY `timestamp` (`timestamp`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
-            
+
             $db->query($sql);
             $results[] = "成功创建新表结构";
-            
+
             // 4. 恢复数据（去重）
             if (!empty($existingRecords)) {
                 $insertedIPs = [];
-                
+
                 foreach ($existingRecords as $record) {
                     if (!in_array($record['ip'], $insertedIPs)) {
                         try {
@@ -1188,10 +1171,10 @@ class Plugin implements PluginInterface
                         }
                     }
                 }
-                
+
                 $results[] = "成功恢复了 " . count($insertedIPs) . " 条唯一IP记录";
             }
-            
+
             // 5. 删除备份表
             try {
                 $db->query("DROP TABLE IF EXISTS `{$prefix}blockip_access_log_bak`");
@@ -1199,7 +1182,7 @@ class Plugin implements PluginInterface
             } catch (\Exception $e) {
                 $results[] = "删除备份表失败: " . $e->getMessage();
             }
-            
+
             return implode("<br>", $results) . "<br><strong>数据库结构修复完成！</strong>";
         } catch (\Exception $e) {
             return "修复过程出现错误: " . $e->getMessage();

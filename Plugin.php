@@ -171,6 +171,7 @@ class Plugin implements PluginInterface
         );
         $form->addInput($whitelist);
 
+<<<<<<< HEAD
         // User-Agent白名单配置
         $uaWhitelistValue = isset($config->uaWhitelist) ? $config->uaWhitelist : '';
         $uaWhitelist = new Textarea(
@@ -186,6 +187,8 @@ class Plugin implements PluginInterface
         );
         $form->addInput($uaWhitelist);
 
+=======
+>>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
         // 访问间隔限制
         $accessIntervalValue = isset($config->accessInterval) ? $config->accessInterval : '10';
         $accessInterval = new Text(
@@ -436,7 +439,11 @@ class Plugin implements PluginInterface
         }
 
         // UA异常检测
+<<<<<<< HEAD
         $uaAnomaly = self::checkUserAgentAnomaly($config);
+=======
+        $uaAnomaly = self::checkUserAgentAnomaly();
+>>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
         if ($uaAnomaly) {
             $reasons[] = 'UA异常';
             if ($debugMode) {
@@ -525,7 +532,11 @@ class Plugin implements PluginInterface
     /**
      * 检查User-Agent是否异常
      */
+<<<<<<< HEAD
     private static function checkUserAgentAnomaly($config = null)
+=======
+    private static function checkUserAgentAnomaly()
+>>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
     {
         $request = new Request();
         $userAgent = $request->getAgent();
@@ -534,6 +545,7 @@ class Plugin implements PluginInterface
             return 'UA为空';
         }
 
+<<<<<<< HEAD
         // 检查User-Agent白名单
         if ($config && isset($config->uaWhitelist) && !empty($config->uaWhitelist)) {
             if (self::isUserAgentWhitelisted($userAgent, $config->uaWhitelist)) {
@@ -541,6 +553,8 @@ class Plugin implements PluginInterface
             }
         }
 
+=======
+>>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
         // 常见的恶意或扫描工具的User-Agent片段
         $maliciousUAs = [
             'sqlmap',
@@ -588,6 +602,7 @@ class Plugin implements PluginInterface
     }
 
     /**
+<<<<<<< HEAD
      * 检查User-Agent是否在白名单中
      */
     private static function isUserAgentWhitelisted($userAgent, $whitelist)
@@ -618,6 +633,8 @@ class Plugin implements PluginInterface
     }
 
     /**
+=======
+>>>>>>> 05aa02b5c9e206a336a624f6c42af272655fa6a2
      * 检查Referer是否异常
      */
     private static function checkRefererAnomaly()
